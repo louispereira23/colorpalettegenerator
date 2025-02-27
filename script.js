@@ -40,13 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Convert word to a seed for consistent color generation
                 const seed = hashString(word.toLowerCase());
                 
+                // Get the word's "mood" to influence color selection
+                const wordMood = getWordMood(word.toLowerCase());
+                
                 // Generate colors based on the word
-                currentColors = {
-                    background: generateColor(seed, 0 + offset, [95, 100], [5, 15], [95, 100]),
-                    text: generateColor(seed, 1 + offset, [15, 25], [5, 15], [15, 25]),
-                    accent: generateColor(seed, 2 + offset, [30, 60], [60, 90], [50, 80]),
-                    accentText: '#ffffff' // Usually white for contrast
-                };
+                currentColors = generateColorPalette(seed, offset, wordMood);
                 
                 // Ensure text has enough contrast with background
                 currentColors.text = ensureContrast(currentColors.background, currentColors.text, 4.5);
@@ -88,6 +86,126 @@ document.addEventListener('DOMContentLoaded', () => {
                 showLoadingState(false);
             }
         }, 50);
+    }
+    
+    // Generate a complete color palette
+    function generateColorPalette(seed, offset, mood) {
+        // Create 5 distinct base hues from the seed
+        const baseHue = (seed % 360);
+        
+        // Apply different color schemes based on mood and seed
+        let scheme = (seed % 5); // 0-4 different color schemes
+        
+        // Adjust scheme based on mood
+        if (mood.happy) scheme = 0; // Bright, vibrant
+        if (mood.calm) scheme = 1;  // Soft, pastel
+        if (mood.serious) scheme = 2; // Professional, muted
+        if (mood.energetic) scheme = 3; // High contrast
+        if (mood.natural) scheme = 4; // Earth tones
+        
+        // Apply offset to allow refreshing
+        scheme = (scheme + offset) % 5;
+        
+        let colors = {};
+        
+        switch(scheme) {
+            case 0: // Bright, vibrant
+                colors = {
+                    background: generateColor(seed, 0 + offset, [baseHue, (baseHue + 5) % 360], [5, 10], [95, 98]),
+                    text: generateColor(seed, 1 + offset, [(baseHue + 180) % 360, (baseHue + 190) % 360], [10, 20], [15, 25]),
+                    accent: generateColor(seed, 2 + offset, [(baseHue + 120) % 360, (baseHue + 150) % 360], [70, 90], [50, 60]),
+                    accentText: '#ffffff'
+                };
+                break;
+            case 1: // Soft, pastel
+                colors = {
+                    background: generateColor(seed, 0 + offset, [baseHue, (baseHue + 10) % 360], [10, 20], [90, 95]),
+                    text: generateColor(seed, 1 + offset, [(baseHue + 180) % 360, (baseHue + 200) % 360], [20, 30], [20, 30]),
+                    accent: generateColor(seed, 2 + offset, [(baseHue + 60) % 360, (baseHue + 90) % 360], [40, 60], [60, 75]),
+                    accentText: '#ffffff'
+                };
+                break;
+            case 2: // Professional, muted
+                colors = {
+                    background: generateColor(seed, 0 + offset, [(baseHue + 15) % 360, (baseHue + 30) % 360], [5, 15], [95, 100]),
+                    text: generateColor(seed, 1 + offset, [(baseHue + 210) % 360, (baseHue + 230) % 360], [15, 30], [15, 25]),
+                    accent: generateColor(seed, 2 + offset, [(baseHue + 200) % 360, (baseHue + 220) % 360], [30, 50], [40, 55]),
+                    accentText: '#ffffff'
+                };
+                break;
+            case 3: // High contrast
+                colors = {
+                    background: generateColor(seed, 0 + offset, [(baseHue + 180) % 360, (baseHue + 200) % 360], [5, 15], [95, 100]),
+                    text: generateColor(seed, 1 + offset, [baseHue, (baseHue + 20) % 360], [50, 70], [20, 30]),
+                    accent: generateColor(seed, 2 + offset, [(baseHue + 90) % 360, (baseHue + 120) % 360], [80, 100], [45, 55]),
+                    accentText: '#ffffff'
+                };
+                break;
+            case 4: // Earth tones
+                // Adjust hue to be in earth tone range (20-60 or 180-240)
+                const earthHue = (seed % 2 === 0) ? 
+                    mapRange(seed % 40, 0, 40, 20, 60) : 
+                    mapRange(seed % 60, 0, 60, 180, 240);
+                
+                colors = {
+                    background: generateColor(earthHue, 0 + offset, [earthHue, earthHue + 10], [10, 20], [92, 98]),
+                    text: generateColor(earthHue, 1 + offset, [earthHue, earthHue + 10], [30, 50], [20, 30]),
+                    accent: generateColor(earthHue, 2 + offset, [earthHue + 15, earthHue + 30], [40, 60], [40, 60]),
+                    accentText: '#ffffff'
+                };
+                break;
+        }
+        
+        return colors;
+    }
+    
+    // Analyze word to determine "mood" for color selection
+    function getWordMood(word) {
+        const mood = {
+            happy: false,
+            calm: false,
+            serious: false,
+            energetic: false,
+            natural: false
+        };
+        
+        // Happy words
+        const happyWords = ['happy', 'joy', 'bright', 'sunny', 'fun', 'smile', 'laugh', 'cheer'];
+        
+        // Calm words
+        const calmWords = ['calm', 'peace', 'quiet', 'gentle', 'soft', 'serene', 'tranquil', 'relax'];
+        
+        // Serious words
+        const seriousWords = ['serious', 'business', 'professional', 'formal', 'corporate', 'work', 'office'];
+        
+        // Energetic words
+        const energeticWords = ['energy', 'power', 'strong', 'vibrant', 'dynamic', 'active', 'bold'];
+        
+        // Natural words
+        const naturalWords = ['nature', 'earth', 'organic', 'forest', 'ocean', 'mountain', 'garden', 'plant'];
+        
+        // Check if word contains any mood words
+        happyWords.forEach(happyWord => {
+            if (word.includes(happyWord)) mood.happy = true;
+        });
+        
+        calmWords.forEach(calmWord => {
+            if (word.includes(calmWord)) mood.calm = true;
+        });
+        
+        seriousWords.forEach(seriousWord => {
+            if (word.includes(seriousWord)) mood.serious = true;
+        });
+        
+        energeticWords.forEach(energeticWord => {
+            if (word.includes(energeticWord)) mood.energetic = true;
+        });
+        
+        naturalWords.forEach(naturalWord => {
+            if (word.includes(naturalWord)) mood.natural = true;
+        });
+        
+        return mood;
     }
     
     // Show loading state
@@ -402,12 +520,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Generate color based on word seed
     function generateColor(seed, offset, hRange, sRange, lRange) {
         // Use the seed and offset to generate a consistent but different value for each color
-        const hash = (seed + offset * 100) % 360;
+        const hash = (seed * (offset + 1) * 11) % 360;
         
         // Map the hash to the specified ranges
         const h = mapRange(hash, 0, 360, hRange[0], hRange[1]);
-        const s = mapRange((hash * 1.5) % 100, 0, 100, sRange[0], sRange[1]);
-        const l = mapRange((hash * 2.5) % 100, 0, 100, lRange[0], lRange[1]);
+        const s = mapRange((hash * 2.7 + offset * 13) % 100, 0, 100, sRange[0], sRange[1]);
+        const l = mapRange((hash * 3.5 + offset * 17) % 100, 0, 100, lRange[0], lRange[1]);
         
         return hslToHex(h, s, l);
     }
@@ -432,11 +550,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hash a string to a number
     function hashString(str) {
         let hash = 0;
+        
+        // Use a better string hashing algorithm for more variety
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash; // Convert to 32bit integer
+            
+            // Add more variation based on character position
+            hash = hash ^ (char * (i + 1));
         }
+        
+        // Add variation based on string length
+        hash = hash ^ (str.length * 719);
+        
         return Math.abs(hash);
     }
     
